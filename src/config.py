@@ -3,18 +3,10 @@
 Configuración del detector de landmarks faciales.
 """
 
-# Parámetros del modelo MediaPipe
-FACE_MESH_CONFIG = {
-    "static_image_mode": True,
-    "max_num_faces": 5,  # Cambiado de 1 a 5 para detectar múltiples rostros
-    "refine_landmarks": True,
-    "min_detection_confidence": 0.5
-}
-
-# Configuración de visualización
+# Configuración de visualización (compatible con face_recognition)
 LANDMARK_COLOR = (0, 255, 0)  # Verde en BGR
 LANDMARK_RADIUS = 2
 LANDMARK_THICKNESS = -1  # Relleno
 
-# Cantidad de landmarks esperados
-TOTAL_LANDMARKS = 478
+# Cantidad aproximada de landmarks (face_recognition tiene ~68 puntos)
+TOTAL_LANDMARKS = 68
