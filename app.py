@@ -6,14 +6,14 @@ Aplicación Streamlit para detección de landmarks faciales.
 import streamlit as st
 from PIL import Image
 from src.detector import FaceLandmarkDetector
-from src.visualizacion import FaceLandmarkVisualizer
-from src.expresiones import FacialExpressionAnalyzer
-from src.exportacion import (
-    export_landmarks_json,
-    export_landmarks_csv,
-    export_expressions_json,
-    create_download_link
-)
+# from src.visualizacion import FaceLandmarkVisualizer
+# from src.expresiones import FacialExpressionAnalyzer
+# from src.exportacion import (
+#     export_landmarks_json,
+#     export_landmarks_csv,
+#     export_expressions_json,
+#     create_download_link
+# )
 from src.utils import pil_to_cv2, cv2_to_pil, resize_image
 from src.config import TOTAL_LANDMARKS
 
@@ -24,21 +24,22 @@ st.set_page_config(
 )
 
 # Título y descripción
-st.title("🧠 Detector Avanzado de Landmarks Faciales")
+st.title("Detector de Landmarks Faciales")
 st.markdown("""
-Esta aplicación detecta **478 puntos clave** en rostros humanos usando MediaPipe y ofrece múltiples opciones de visualización y análisis.
+Esta aplicación detecta **puntos clave** en rostros humanos usando OpenCV Haar Cascades.
+Subí una imagen con un rostro y mirá la magia de la visión por computadora.
 """)
 
 # Sidebar con información y controles
 with st.sidebar:
-    st.header("🎯 Información")
+    st.header("Información")
     st.markdown("""
     ### ¿Qué son los Landmarks?
     Son puntos de referencia que mapean:
-    - 👁️ Ojos (iris, párpados)
-    - 👃 Nariz (puente, fosas)
-    - 👄 Boca (labios, comisuras)
-    - 🫥 Contorno facial
+    - Ojos (detectados por Haar Cascades)
+    - Nariz (posición aproximada)
+    - Boca (posición aproximada)
+    - Contorno facial
     """)
 
     st.divider()

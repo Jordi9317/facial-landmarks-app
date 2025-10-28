@@ -1,196 +1,120 @@
 # src/visualizacion.py
 """
-Funciones de visualización y estilos para landmarks faciales.
+Módulo para visualización de landmarks faciales con diferentes estilos.
+Compatible con OpenCV Haar Cascades.
 """
 
 import cv2
-import mediapipe as mp
 from .config import LANDMARK_COLOR, LANDMARK_RADIUS, LANDMARK_THICKNESS
 
 
 class FaceLandmarkVisualizer:
     """
     Clase para visualizar landmarks faciales con diferentes estilos.
+    Compatible con OpenCV Haar Cascades.
     """
 
     def __init__(self):
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.mp_drawing_styles = mp.solutions.drawing_styles
+        """Inicializa el visualizador."""
+        pass
 
     def draw_points_only(self, image, landmarks):
         """
-        Dibuja solo los puntos de landmarks (estilo original).
-        Soporta múltiples rostros.
+        Dibuja solo los puntos de landmarks.
 
         Args:
-            image (numpy.ndarray): Imagen OpenCV
-            landmarks: Lista de objetos landmarks de MediaPipe o objeto único
+            image (numpy.ndarray): Imagen donde dibujar
+            landmarks: Diccionario de coordenadas de landmarks
 
         Returns:
             numpy.ndarray: Imagen con puntos dibujados
         """
         image_copy = image.copy()
-        alto, ancho = image.shape[:2]
 
-        # Si es una lista de rostros (múltiples), iterar sobre cada uno
-        if isinstance(landmarks, list):
-            rostros = landmarks
-        else:
-            # Si es un solo rostro, convertirlo en lista
-            rostros = [landmarks] if landmarks else []
-
-        for rostro in rostros:
-            for punto in rostro.landmark:
-                coord_x_pixel = int(punto.x * ancho)
-                coord_y_pixel = int(punto.y * alto)
-
-                cv2.circle(
-                    image_copy,
-                    (coord_x_pixel, coord_y_pixel),
-                    LANDMARK_RADIUS,
-                    LANDMARK_COLOR,
-                    LANDMARK_THICKNESS
-                )
+        # Dibujar landmarks del diccionario
+        for key, value in landmarks.items():
+            if isinstance(value, list):
+                for point in value:
+                    cv2.circle(image_copy, point, LANDMARK_RADIUS,
+                             LANDMARK_COLOR, LANDMARK_THICKNESS)
+            else:
+                cv2.circle(image_copy, value, LANDMARK_RADIUS,
+                         LANDMARK_COLOR, LANDMARK_THICKNESS)
 
         return image_copy
 
     def draw_mesh_tesselation(self, image, landmarks):
         """
-        Dibuja puntos + malla conectada (teselación).
-        Soporta múltiples rostros.
+        Dibuja conexiones simples entre landmarks principales.
 
         Args:
-            image (numpy.ndarray): Imagen OpenCV
-            landmarks: Lista de objetos landmarks de MediaPipe o objeto único
+            image (numpy.ndarray): Imagen donde dibujar
+            landmarks: Diccionario de coordenadas de landmarks
 
         Returns:
-            numpy.ndarray: Imagen con malla dibujada
+            numpy.ndarray: Imagen con conexiones dibujadas
         """
         image_copy = image.copy()
 
-        # Si es una lista de rostros (múltiples), iterar sobre cada uno
-        if isinstance(landmarks, list):
-            rostros = landmarks
-        else:
-            # Si es un solo rostro, convertirlo en lista
-            rostros = [landmarks] if landmarks else []
+        # Dibujar líneas conectando puntos principales
+        if 'face_left' in landmarks and 'face_right' in landmarks:
+            cv2.line(image_copy, landmarks['face_left'], landmarks['face_right'],
+                    LANDMARK_COLOR, 2)
 
-        for rostro in rostros:
-            self.mp_drawing.draw_landmarks(
-                image=image_copy,
-                landmark_list=rostro,
-                connections=mp.solutions.face_mesh.FACEMESH_TESSELATION,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_tesselation_style()
-            )
+        if 'face_top' in landmarks and 'face_bottom' in landmarks:
+            cv2.line(image_copy, landmarks['face_top'], landmarks['face_bottom'],
+                    LANDMARK_COLOR, 2)
+
+        # Conectar ojos si existen
+        if 'eyes' in landmarks and len(landmarks['eyes']) >= 2:
+            eye1, eye2 = landmarks['eyes'][:2]
+            cv2.line(image_copy, eye1, eye2, LANDMARK_COLOR, 2)
+
+        # Dibujar puntos también
+        image_copy = self.draw_points_only(image_copy, landmarks)
 
         return image_copy
 
     def draw_contours_only(self, image, landmarks):
         """
-        Dibuja solo los contornos principales (ojos, boca, rostro).
-        Soporta múltiples rostros.
+        Dibuja solo el contorno facial básico.
 
         Args:
-            image (numpy.ndarray): Imagen OpenCV
-            landmarks: Lista de objetos landmarks de MediaPipe o objeto único
+            image (numpy.ndarray): Imagen donde dibujar
+            landmarks: Diccionario de coordenadas de landmarks
 
         Returns:
-            numpy.ndarray: Imagen con contornos dibujados
+            numpy.ndarray: Imagen con contorno dibujado
         """
         image_copy = image.copy()
 
-        # Si es una lista de rostros (múltiples), iterar sobre cada uno
-        if isinstance(landmarks, list):
-            rostros = landmarks
-        else:
-            # Si es un solo rostro, convertirlo en lista
-            rostros = [landmarks] if landmarks else []
+        # Dibujar solo los puntos del contorno facial
+        contour_points = ['face_top', 'face_right', 'face_bottom', 'face_left']
+        points_to_draw = {}
 
-        for rostro in rostros:
-            # Dibujar contornos faciales principales
-            self.mp_drawing.draw_landmarks(
-                image=image_copy,
-                landmark_list=rostro,
-                connections=mp.solutions.face_mesh.FACEMESH_FACE_OVAL,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_contours_style()
-            )
+        for point_name in contour_points:
+            if point_name in landmarks:
+                points_to_draw[point_name] = landmarks[point_name]
 
-            # Dibujar contornos de ojos
-            self.mp_drawing.draw_landmarks(
-                image=image_copy,
-                landmark_list=rostro,
-                connections=mp.solutions.face_mesh.FACEMESH_LEFT_EYE,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_contours_style()
-            )
+        # Dibujar conexiones del contorno
+        if len(points_to_draw) >= 4:
+            # Crear lista ordenada de puntos para el contorno
+            ordered_points = [
+                points_to_draw['face_top'],
+                points_to_draw['face_right'],
+                points_to_draw['face_bottom'],
+                points_to_draw['face_left']
+            ]
 
-            self.mp_drawing.draw_landmarks(
-                image=image_copy,
-                landmark_list=rostro,
-                connections=mp.solutions.face_mesh.FACEMESH_RIGHT_EYE,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_contours_style()
-            )
+            # Dibujar líneas conectando los puntos del contorno
+            for i in range(len(ordered_points)):
+                start_point = ordered_points[i]
+                end_point = ordered_points[(i + 1) % len(ordered_points)]
+                cv2.line(image_copy, start_point, end_point, LANDMARK_COLOR, 3)
 
-            # Dibujar contornos de labios
-            self.mp_drawing.draw_landmarks(
-                image=image_copy,
-                landmark_list=rostro,
-                connections=mp.solutions.face_mesh.FACEMESH_LIPS,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_contours_style()
-            )
+        # Dibujar puntos del contorno
+        for point in points_to_draw.values():
+            cv2.circle(image_copy, point, LANDMARK_RADIUS + 2,
+                     LANDMARK_COLOR, LANDMARK_THICKNESS)
 
         return image_copy
-
-    def create_heatmap_overlay(self, image, landmarks):
-        """
-        Crea una superposición de heatmap de densidad de puntos.
-        Soporta múltiples rostros.
-
-        Args:
-            image (numpy.ndarray): Imagen OpenCV
-            landmarks: Lista de objetos landmarks de MediaPipe o objeto único
-
-        Returns:
-            numpy.ndarray: Imagen con heatmap superpuesto
-        """
-        import numpy as np
-
-        image_copy = image.copy()
-        alto, ancho = image.shape[:2]
-
-        # Crear mapa de calor vacío
-        heatmap = np.zeros((alto, ancho), dtype=np.float32)
-
-        # Si es una lista de rostros (múltiples), iterar sobre cada uno
-        if isinstance(landmarks, list):
-            rostros = landmarks
-        else:
-            # Si es un solo rostro, convertirlo en lista
-            rostros = [landmarks] if landmarks else []
-
-        # Agregar puntos al heatmap para todos los rostros
-        for rostro in rostros:
-            for punto in rostro.landmark:
-                x = int(punto.x * ancho)
-                y = int(punto.y * alto)
-                if 0 <= x < ancho and 0 <= y < alto:
-                    # Crear un área circular alrededor del punto
-                    cv2.circle(heatmap, (x, y), 10, 1.0, -1)
-
-        # Aplicar filtro gaussiano para suavizar
-        heatmap = cv2.GaussianBlur(heatmap, (21, 21), 0)
-
-        # Normalizar al rango 0-255
-        heatmap = cv2.normalize(heatmap, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-
-        # Aplicar mapa de colores (jet)
-        heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-        # Superponer al 50% de opacidad
-        overlay = cv2.addWeighted(image_copy, 0.7, heatmap_colored, 0.3, 0)
-
-        return overlay
