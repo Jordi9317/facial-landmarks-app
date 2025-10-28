@@ -1,12 +1,9 @@
 # Dependencias para la aplicación de detección de landmarks faciales
-# Basado en el entorno virtual del usuario (pip list)
+# Optimizado para Streamlit Cloud
 
 # Librerías principales
-mediapipe==0.10.14
-opencv-python>=4.8.0
-streamlit==1.50.0
-pillow==11.3.0
-numpy==2.0.2
-
-# Dependencias adicionales que pueden ser necesarias
-protobuf==3.20.3
+streamlit>=1.28.0
+opencv-python-headless>=4.8.0
+mediapipe>=0.10.0
+pillow>=10.0.0
+numpy>=1.24.0
