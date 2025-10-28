@@ -4,7 +4,7 @@
 
 **Fecha**: Octubre 2025
 **Institución**: IFTS24
-**Desarrollador**: Estudiante de Procesamiento Digital de Imágenes
+**Desarrollador**: Jordi Galman
 
 ---
 
@@ -371,16 +371,19 @@ Este proyecto demostró cómo la **integración de IA en el proceso educativo** 
 ### Recursos Educativos
 - [Kilo Code - Agente IA](https://kilocode.ai/)
 - [Google Colab - Entorno de desarrollo](https://colab.research.google.com/)
+- [GitHub - Repositorio del proyecto](https://github.com/Jordi9317/facial-landmarks-app)
 - [IFT S24 - Procesamiento Digital de Imágenes](https://ifts24.edu.ar)
 
 ### Bibliotecas Utilizadas
-- **MediaPipe** 0.10.14 - Google LLC (Apache License 2.0)
-- **OpenCV** 4.12.0 - OpenCV Team (Apache License 2.0)
-- **Streamlit** 1.50.0 - Streamlit Inc. (Apache License 2.0)
-- **NumPy** 2.0.2 - NumPy Developers (BSD License)
+- **MediaPipe** 0.10.0 - Google LLC (Apache License 2.0)
+- **OpenCV** 4.8.0 - OpenCV Team (Apache License 2.0)
+- **Streamlit** 1.28.0 - Streamlit Inc. (Apache License 2.0)
+- **NumPy** 1.24.0 - NumPy Developers (BSD License)
+- **Pillow** 10.0.0 - Python Imaging Library (PIL)
 
 ---
 
 **Fecha de entrega**: 29 de octubre de 2025
 **Estado del proyecto**: ✅ Completado y funcional
-**Deployment**: Listo para Streamlit Community Cloud
+**Deployment**: ✅ Subido a GitHub (https://github.com/Jordi9317/facial-landmarks-app)
+**Streamlit Cloud**: Listo para deploy
