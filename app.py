@@ -6,14 +6,14 @@ Aplicación Streamlit para detección de landmarks faciales.
 import streamlit as st
 from PIL import Image
 from src.detector import FaceLandmarkDetector
-# from src.visualizacion import FaceLandmarkVisualizer
-# from src.expresiones import FacialExpressionAnalyzer
-# from src.exportacion import (
-#     export_landmarks_json,
-#     export_landmarks_csv,
-#     export_expressions_json,
-#     create_download_link
-# )
+from src.visualizacion import FaceLandmarkVisualizer
+from src.expresiones import FacialExpressionAnalyzer
+from src.exportacion import (
+    export_landmarks_json,
+    export_landmarks_csv,
+    export_expressions_json,
+    create_download_link
+)
 from src.utils import pil_to_cv2, cv2_to_pil, resize_image
 from src.config import TOTAL_LANDMARKS
 
@@ -26,7 +26,7 @@ st.set_page_config(
 # Título y descripción
 st.title("Detector de Landmarks Faciales")
 st.markdown("""
-Esta aplicación detecta **puntos clave** en rostros humanos usando OpenCV Haar Cascades.
+Esta aplicación detecta **478 puntos clave** en rostros humanos usando MediaPipe Face Mesh.
 Subí una imagen con un rostro y mirá la magia de la visión por computadora.
 """)
 
@@ -36,10 +36,10 @@ with st.sidebar:
     st.markdown("""
     ### ¿Qué son los Landmarks?
     Son puntos de referencia que mapean:
-    - Ojos (detectados por Haar Cascades)
-    - Nariz (posición aproximada)
-    - Boca (posición aproximada)
-    - Contorno facial
+    - 478 puntos precisos por rostro usando MediaPipe
+    - Ojos, cejas, nariz, boca, contorno facial
+    - Coordenadas 3D (x, y, z) normalizadas
+    - Alta precisión para análisis facial detallado
     """)
 
     st.divider()
@@ -90,7 +90,7 @@ if uploaded_file is not None:
 
     with col1:
         st.subheader("🖼️ Imagen Original")
-        st.image(cv2_to_pil(imagen_cv2), use_container_width=True)
+        st.image(cv2_to_pil(imagen_cv2), width='stretch')
 
     # Detectar landmarks
     with st.spinner("🔍 Detectando landmarks faciales..."):
@@ -102,14 +102,17 @@ if uploaded_file is not None:
     if info["deteccion_exitosa"] and landmarks:
         visualizer = FaceLandmarkVisualizer()
 
+        # Tomar el primer rostro para visualización
+        primer_rostro = landmarks[0] if isinstance(landmarks, list) else landmarks
+
         if visualization_style == "Puntos Simples":
-            imagen_visualizada = visualizer.draw_points_only(imagen_cv2, landmarks)
+            imagen_visualizada = visualizer.draw_points_only(imagen_cv2, primer_rostro)
         elif visualization_style == "Malla Conectada":
-            imagen_visualizada = visualizer.draw_mesh_tesselation(imagen_cv2, landmarks)
+            imagen_visualizada = visualizer.draw_mesh_tesselation(imagen_cv2, primer_rostro)
         elif visualization_style == "Contornos Principales":
-            imagen_visualizada = visualizer.draw_contours_only(imagen_cv2, landmarks)
+            imagen_visualizada = visualizer.draw_contours_only(imagen_cv2, primer_rostro)
         elif visualization_style == "Heatmap":
-            imagen_visualizada = visualizer.create_heatmap_overlay(imagen_cv2, landmarks)
+            imagen_visualizada = visualizer.create_heatmap_overlay(imagen_cv2, primer_rostro)
         else:
             imagen_visualizada = imagen_procesada  # Fallback
     else:
@@ -117,7 +120,7 @@ if uploaded_file is not None:
 
     with col2:
         st.subheader(f"🎨 Landmarks - {visualization_style}")
-        st.image(cv2_to_pil(imagen_visualizada), use_container_width=True)
+        st.image(cv2_to_pil(imagen_visualizada), width='stretch')
 
     # Mostrar información de detección
     st.divider()
@@ -144,20 +147,21 @@ if uploaded_file is not None:
 
             analyzer = FacialExpressionAnalyzer()
             # Tomar el primer rostro para análisis de expresiones
-            primer_rostro = landmarks[0] if isinstance(landmarks, list) else landmarks
-            expresion_data = analyzer.analizar_expresion_basica(primer_rostro, imagen_cv2.shape[0], imagen_cv2.shape[1])
+            primer_rostro = landmarks[0] if isinstance(landmarks, list) and landmarks else None
+            if primer_rostro:
+                expresion_data = analyzer.analizar_expresion_basica(primer_rostro, imagen_cv2.shape[0], imagen_cv2.shape[1])
 
             # Mostrar métricas de expresión
             exp_col1, exp_col2, exp_col3 = st.columns(3)
 
             with exp_col1:
-                st.metric("👄 Apertura Boca", f"{expresion_data['apertura_boca']:.1f}")
+                st.metric("👄 Apertura Boca", f"{expresion_data['apertura_boca']:.3f}")
 
             with exp_col2:
-                st.metric("👁️ Apertura Ojos", f"{expresion_data['apertura_ojos']['promedio']:.1f}")
+                st.metric("👁️ Apertura Ojos", f"{expresion_data['apertura_ojos']['promedio']:.3f}")
 
             with exp_col3:
-                st.metric("📐 Inclinación Cabeza", f"{expresion_data['inclinacion_cabeza']:.1f}")
+                st.metric("📐 Inclinación Cabeza", f"{expresion_data['inclinacion_cabeza']:.3f}°")
 
             # Clasificación de expresión
             st.info(f"**Expresión detectada:** {expresion_data['expresion_detectada'].replace('_', ' ').title()}")
@@ -230,7 +234,7 @@ else:
         st.markdown("**🔍 Detección Avanzada**")
         st.write("• Hasta 5 rostros simultáneamente")
         st.write("• 478 landmarks por rostro")
-        st.write("• Precisión MediaPipe")
+        st.write("• Precisión MediaPipe Face Mesh")
 
         st.markdown("**🎨 Visualización Múltiple**")
         st.write("• Puntos simples")

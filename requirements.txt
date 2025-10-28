@@ -1,8 +1,11 @@
 # Dependencias para la aplicación de detección de landmarks faciales
-# Optimizado para Streamlit Cloud (Python 3.13.9 compatible)
+# Optimizado para Streamlit Cloud (Python 3.10-3.11 compatible con MediaPipe)
 
 # Librerías principales
 streamlit>=1.28.0
 opencv-python-headless>=4.8.0
 pillow>=10.0.0
 numpy>=1.24.0
+
+# MediaPipe para detección avanzada de landmarks faciales
+mediapipe>=0.10.0

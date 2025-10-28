@@ -11,10 +11,10 @@ from datetime import datetime
 def landmarks_to_dict(landmarks, alto, ancho):
     """
     Convierte landmarks a formato diccionario para exportación.
-    Soporta múltiples rostros.
+    Soporta listas de objetos NormalizedLandmarkList de MediaPipe.
 
     Args:
-        landmarks: Lista de objetos landmarks de MediaPipe o objeto único
+        landmarks: Lista de objetos NormalizedLandmarkList de MediaPipe
         alto (int): Alto de la imagen
         ancho (int): Ancho de la imagen
 
@@ -23,24 +23,22 @@ def landmarks_to_dict(landmarks, alto, ancho):
     """
     data = []
 
-    # Si es una lista de rostros (múltiples), procesar todos
-    if isinstance(landmarks, list):
-        rostros = landmarks
-    else:
-        # Si es un solo rostro, convertirlo en lista
-        rostros = [landmarks] if landmarks else []
+    if not landmarks:
+        return data
 
-    for rostro_idx, rostro in enumerate(rostros):
-        for idx, punto in enumerate(rostro.landmark):
+    # Procesar cada rostro detectado
+    for rostro_idx, face_landmarks in enumerate(landmarks):
+        # Procesar cada landmark del rostro
+        for landmark_idx, landmark in enumerate(face_landmarks.landmark):
             data.append({
                 "rostro_id": rostro_idx,
-                "landmark_id": idx,
-                "x": punto.x * ancho,
-                "y": punto.y * alto,
-                "z": punto.z,
-                "x_normalizado": punto.x,
-                "y_normalizado": punto.y,
-                "visibilidad": getattr(punto, 'visibility', 1.0)  # Algunos modelos tienen visibilidad
+                "landmark_id": landmark_idx,
+                "x": int(landmark.x * ancho),
+                "y": int(landmark.y * alto),
+                "z": landmark.z,
+                "x_normalizado": landmark.x,
+                "y_normalizado": landmark.y,
+                "visibilidad": getattr(landmark, 'visibility', 1.0)
             })
 
     return data

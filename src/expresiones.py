@@ -19,86 +19,119 @@ class FacialExpressionAnalyzer:
         self.MOUTH = 'mouth'
         self.FACE_CENTER = 'face_center'
 
-    def calcular_apertura_boca(self, landmarks, alto, ancho):
+    def calcular_apertura_boca(self, face_landmarks, alto, ancho):
         """
-        Calcula la apertura de la boca usando landmarks básicos de OpenCV.
+        Calcula la apertura de la boca usando MediaPipe Face Mesh.
 
         Args:
-            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
-            float: Distancia aproximada (siempre 0 ya que no tenemos landmarks de boca precisos)
+            float: Distancia normalizada entre labio superior e inferior
         """
-        # Con Haar Cascades no podemos calcular apertura de boca precisa
-        # Retornamos 0 como indicador de que no está disponible
-        return 0.0
+        if not face_landmarks:
+            return 0.0
 
-    def calcular_apertura_ojos(self, landmarks, alto, ancho):
+        # Landmarks de la boca en MediaPipe Face Mesh
+        # 13: labio superior, 14: labio inferior
+        upper_lip = face_landmarks.landmark[13]
+        lower_lip = face_landmarks.landmark[14]
+
+        # Calcular distancia vertical normalizada
+        apertura = abs(upper_lip.y - lower_lip.y)
+        return apertura
+
+    def calcular_apertura_ojos(self, face_landmarks, alto, ancho):
         """
-        Calcula la apertura de ambos ojos usando Haar Cascades.
-        Como no tenemos landmarks precisos de ojos, retornamos valores aproximados.
+        Calcula la apertura de ambos ojos usando MediaPipe Face Mesh.
 
         Args:
-            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
             dict: {'izquierdo': float, 'derecho': float, 'promedio': float}
         """
-        # Contar ojos detectados
-        num_eyes = len(landmarks.get('eyes', []))
+        if not face_landmarks:
+            return {'izquierdo': 0.0, 'derecho': 0.0, 'promedio': 0.0}
 
-        # Valores aproximados basados en detección de ojos
-        eye_apertura = 15.0 if num_eyes >= 2 else 10.0  # Valor aproximado en píxeles
+        # Landmarks de los ojos en MediaPipe Face Mesh
+        # Ojo izquierdo: 159 (párpado superior), 145 (párpado inferior)
+        # Ojo derecho: 386 (párpado superior), 374 (párpado inferior)
+
+        left_eye_upper = face_landmarks.landmark[159]
+        left_eye_lower = face_landmarks.landmark[145]
+        right_eye_upper = face_landmarks.landmark[386]
+        right_eye_lower = face_landmarks.landmark[374]
+
+        # Calcular aperturas normalizadas
+        left_apertura = abs(left_eye_upper.y - left_eye_lower.y)
+        right_apertura = abs(right_eye_upper.y - right_eye_lower.y)
+        promedio = (left_apertura + right_apertura) / 2
 
         return {
-            'izquierdo': eye_apertura if num_eyes >= 1 else 0.0,
-            'derecho': eye_apertura if num_eyes >= 2 else 0.0,
-            'promedio': eye_apertura if num_eyes >= 1 else 0.0
+            'izquierdo': left_apertura,
+            'derecho': right_apertura,
+            'promedio': promedio
         }
 
-    def calcular_inclinacion_cabeza(self, landmarks, alto, ancho):
+    def calcular_inclinacion_cabeza(self, face_landmarks, alto, ancho):
         """
-        Calcula la inclinación de la cabeza usando landmarks básicos de OpenCV.
+        Calcula la inclinación de la cabeza usando MediaPipe Face Mesh.
 
         Args:
-            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
-            float: Ángulo de inclinación en grados (siempre 0 ya que no podemos calcularlo con precisión)
+            float: Ángulo de inclinación en grados
         """
-        # Con Haar Cascades no podemos calcular inclinación precisa
-        return 0.0
+        if not face_landmarks:
+            return 0.0
 
-    def analizar_expresion_basica(self, landmarks, alto, ancho):
+        # Usar landmarks de los ojos para calcular inclinación
+        # Ojo izquierdo: 33, Ojo derecho: 263
+        left_eye = face_landmarks.landmark[33]
+        right_eye = face_landmarks.landmark[263]
+
+        # Calcular ángulo usando la línea entre los ojos
+        delta_y = right_eye.y - left_eye.y
+        delta_x = right_eye.x - left_eye.x
+
+        # Ángulo en radianes, convertir a grados
+        angulo_radianes = math.atan2(delta_y, delta_x)
+        angulo_grados = math.degrees(angulo_radianes)
+
+        return angulo_grados
+
+    def analizar_expresion_basica(self, face_landmarks, alto, ancho):
         """
-        Análisis básico de expresión facial.
+        Análisis básico de expresión facial usando MediaPipe Face Mesh.
 
         Args:
-            landmarks: Objeto landmarks de MediaPipe
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
             dict: Diccionario con métricas de expresión
         """
-        apertura_boca = self.calcular_apertura_boca(landmarks, alto, ancho)
-        apertura_ojos = self.calcular_apertura_ojos(landmarks, alto, ancho)
-        inclinacion_cabeza = self.calcular_inclinacion_cabeza(landmarks, alto, ancho)
+        apertura_boca = self.calcular_apertura_boca(face_landmarks, alto, ancho)
+        apertura_ojos = self.calcular_apertura_ojos(face_landmarks, alto, ancho)
+        inclinacion_cabeza = self.calcular_inclinacion_cabeza(face_landmarks, alto, ancho)
 
-        # Clasificación básica (muy simplificada)
+        # Clasificación básica basada en métricas calculadas
         expresion = "neutral"
 
-        if apertura_boca > 20:  # Umbral arbitrario
+        if apertura_boca > 0.03:  # Umbral más alto para boca abierta
             expresion = "boca_abierta"
-        elif apertura_ojos['promedio'] < 5:  # Umbral arbitrario
+        elif apertura_ojos['promedio'] < 0.02:  # Umbral más bajo para ojos cerrados
             expresion = "ojos_cerrados"
-        elif abs(inclinacion_cabeza) > 15:  # Umbral arbitrario
+        elif abs(inclinacion_cabeza) > 15:  # Umbral más alto para cabeza inclinada
             expresion = "cabeza_inclinada"
 
         return {
@@ -107,8 +140,8 @@ class FacialExpressionAnalyzer:
             'apertura_ojos': apertura_ojos,
             'inclinacion_cabeza': inclinacion_cabeza,
             'metricas': {
-                'boca_abierta_umbral': 20,
-                'ojos_cerrados_umbral': 5,
+                'boca_abierta_umbral': 0.03,
+                'ojos_cerrados_umbral': 0.02,
                 'cabeza_inclinada_umbral': 15
             }
         }

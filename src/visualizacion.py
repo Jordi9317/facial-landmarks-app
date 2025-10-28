@@ -1,120 +1,139 @@
 # src/visualizacion.py
 """
 Módulo para visualización de landmarks faciales con diferentes estilos.
-Compatible con OpenCV Haar Cascades.
+Compatible con MediaPipe Face Mesh.
 """
 
 import cv2
+import mediapipe as mp
 from .config import LANDMARK_COLOR, LANDMARK_RADIUS, LANDMARK_THICKNESS
 
 
 class FaceLandmarkVisualizer:
     """
     Clase para visualizar landmarks faciales con diferentes estilos.
-    Compatible con OpenCV Haar Cascades.
+    Compatible con MediaPipe Face Mesh.
     """
 
     def __init__(self):
         """Inicializa el visualizador."""
-        pass
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_face_mesh = mp.solutions.face_mesh
 
-    def draw_points_only(self, image, landmarks):
+    def draw_points_only(self, image, face_landmarks):
         """
-        Dibuja solo los puntos de landmarks.
+        Dibuja solo los puntos de landmarks usando MediaPipe.
 
         Args:
             image (numpy.ndarray): Imagen donde dibujar
-            landmarks: Diccionario de coordenadas de landmarks
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
 
         Returns:
             numpy.ndarray: Imagen con puntos dibujados
         """
         image_copy = image.copy()
 
-        # Dibujar landmarks del diccionario
-        for key, value in landmarks.items():
-            if isinstance(value, list):
-                for point in value:
-                    cv2.circle(image_copy, point, LANDMARK_RADIUS,
-                             LANDMARK_COLOR, LANDMARK_THICKNESS)
-            else:
-                cv2.circle(image_copy, value, LANDMARK_RADIUS,
-                         LANDMARK_COLOR, LANDMARK_THICKNESS)
+        if face_landmarks:
+            # Dibujar todos los landmarks como puntos simples
+            for landmark in face_landmarks.landmark:
+                x = int(landmark.x * image.shape[1])
+                y = int(landmark.y * image.shape[0])
+                cv2.circle(image_copy, (x, y), LANDMARK_RADIUS,
+                          LANDMARK_COLOR, LANDMARK_THICKNESS)
 
         return image_copy
 
-    def draw_mesh_tesselation(self, image, landmarks):
+    def draw_mesh_tesselation(self, image, face_landmarks):
         """
-        Dibuja conexiones simples entre landmarks principales.
+        Dibuja la malla de teselación completa usando MediaPipe.
 
         Args:
             image (numpy.ndarray): Imagen donde dibujar
-            landmarks: Diccionario de coordenadas de landmarks
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
 
         Returns:
-            numpy.ndarray: Imagen con conexiones dibujadas
+            numpy.ndarray: Imagen con malla de teselación dibujada
         """
         image_copy = image.copy()
 
-        # Dibujar líneas conectando puntos principales
-        if 'face_left' in landmarks and 'face_right' in landmarks:
-            cv2.line(image_copy, landmarks['face_left'], landmarks['face_right'],
-                    LANDMARK_COLOR, 2)
-
-        if 'face_top' in landmarks and 'face_bottom' in landmarks:
-            cv2.line(image_copy, landmarks['face_top'], landmarks['face_bottom'],
-                    LANDMARK_COLOR, 2)
-
-        # Conectar ojos si existen
-        if 'eyes' in landmarks and len(landmarks['eyes']) >= 2:
-            eye1, eye2 = landmarks['eyes'][:2]
-            cv2.line(image_copy, eye1, eye2, LANDMARK_COLOR, 2)
-
-        # Dibujar puntos también
-        image_copy = self.draw_points_only(image_copy, landmarks)
+        if face_landmarks:
+            # Dibujar la malla de teselación completa
+            self.mp_drawing.draw_landmarks(
+                image=image_copy,
+                landmark_list=face_landmarks,
+                connections=self.mp_face_mesh.FACEMESH_TESSELATION,
+                landmark_drawing_spec=None,  # No dibujar puntos individuales
+                connection_drawing_spec=self.mp_drawing.DrawingSpec(
+                    color=LANDMARK_COLOR, thickness=1
+                )
+            )
 
         return image_copy
 
-    def draw_contours_only(self, image, landmarks):
+    def create_heatmap_overlay(self, image, face_landmarks):
         """
-        Dibuja solo el contorno facial básico.
+        Crea un mapa de calor superpuesto sobre la imagen basado en la densidad de landmarks.
 
         Args:
             image (numpy.ndarray): Imagen donde dibujar
-            landmarks: Diccionario de coordenadas de landmarks
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
 
         Returns:
-            numpy.ndarray: Imagen con contorno dibujado
+            numpy.ndarray: Imagen con mapa de calor superpuesto
+        """
+        import numpy as np
+
+        image_copy = image.copy()
+        height, width = image.shape[:2]
+
+        # Crear mapa de calor vacío
+        heatmap = np.zeros((height, width), dtype=np.float32)
+
+        if face_landmarks:
+            # Agregar puntos al mapa de calor con un radio de influencia
+            for landmark in face_landmarks.landmark:
+                x = int(landmark.x * width)
+                y = int(landmark.y * height)
+                if 0 <= x < width and 0 <= y < height:
+                    # Crear un círculo de influencia alrededor de cada punto
+                    cv2.circle(heatmap, (x, y), 20, 1.0, -1)  # Radio 20, valor 1.0
+
+        # Normalizar el mapa de calor
+        if heatmap.max() > 0:
+            heatmap = heatmap / heatmap.max()
+
+        # Aplicar colormap
+        heatmap_colored = cv2.applyColorMap((heatmap * 255).astype(np.uint8), cv2.COLORMAP_JET)
+
+        # Superponer el mapa de calor sobre la imagen original
+        alpha = 0.5  # Transparencia
+        image_copy = cv2.addWeighted(image_copy, 1 - alpha, heatmap_colored, alpha, 0)
+
+        return image_copy
+
+    def draw_contours_only(self, image, face_landmarks):
+        """
+        Dibuja solo los contornos principales usando MediaPipe.
+
+        Args:
+            image (numpy.ndarray): Imagen donde dibujar
+            face_landmarks: Objeto NormalizedLandmarkList de MediaPipe
+
+        Returns:
+            numpy.ndarray: Imagen con contornos dibujados
         """
         image_copy = image.copy()
 
-        # Dibujar solo los puntos del contorno facial
-        contour_points = ['face_top', 'face_right', 'face_bottom', 'face_left']
-        points_to_draw = {}
-
-        for point_name in contour_points:
-            if point_name in landmarks:
-                points_to_draw[point_name] = landmarks[point_name]
-
-        # Dibujar conexiones del contorno
-        if len(points_to_draw) >= 4:
-            # Crear lista ordenada de puntos para el contorno
-            ordered_points = [
-                points_to_draw['face_top'],
-                points_to_draw['face_right'],
-                points_to_draw['face_bottom'],
-                points_to_draw['face_left']
-            ]
-
-            # Dibujar líneas conectando los puntos del contorno
-            for i in range(len(ordered_points)):
-                start_point = ordered_points[i]
-                end_point = ordered_points[(i + 1) % len(ordered_points)]
-                cv2.line(image_copy, start_point, end_point, LANDMARK_COLOR, 3)
-
-        # Dibujar puntos del contorno
-        for point in points_to_draw.values():
-            cv2.circle(image_copy, point, LANDMARK_RADIUS + 2,
-                     LANDMARK_COLOR, LANDMARK_THICKNESS)
+        if face_landmarks:
+            # Dibujar solo los contornos principales (ojos, boca, contorno facial)
+            self.mp_drawing.draw_landmarks(
+                image=image_copy,
+                landmark_list=face_landmarks,
+                connections=self.mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,  # No dibujar puntos individuales
+                connection_drawing_spec=self.mp_drawing.DrawingSpec(
+                    color=LANDMARK_COLOR, thickness=3
+                )
+            )
 
         return image_copy
