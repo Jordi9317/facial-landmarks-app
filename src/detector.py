@@ -1,27 +1,27 @@
 # src/detector.py
 """
-Detector de landmarks faciales usando face_recognition (compatible con Python 3.9+).
+Detector de landmarks faciales usando MediaPipe (versión optimizada).
 """
 
 import cv2
-import face_recognition
-import numpy as np
-from .config import LANDMARK_COLOR, LANDMARK_RADIUS, LANDMARK_THICKNESS
+import mediapipe as mp
+from .config import FACE_MESH_CONFIG, LANDMARK_COLOR, LANDMARK_RADIUS, LANDMARK_THICKNESS
 
 
 class FaceLandmarkDetector:
     """
-    Clase para detectar y visualizar landmarks faciales usando face_recognition.
+    Clase para detectar y visualizar landmarks faciales usando MediaPipe.
     """
 
     def __init__(self):
-        """Inicializa el detector de face_recognition."""
-        # face_recognition usa modelos pre-entrenados automáticamente
-        pass
+        """Inicializa el detector de MediaPipe."""
+        self.face_mesh = mp.solutions.face_mesh.FaceMesh(**FACE_MESH_CONFIG)
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_drawing_styles = mp.solutions.drawing_styles
 
     def detect(self, image):
         """
-        Detecta landmarks faciales en la imagen usando face_recognition.
+        Detecta landmarks faciales en la imagen usando MediaPipe.
 
         Args:
             image (numpy.ndarray): Imagen en formato BGR (OpenCV)
@@ -29,42 +29,40 @@ class FaceLandmarkDetector:
         Returns:
             tuple: (imagen_procesada, landmarks, info)
                 - imagen_procesada: imagen con landmarks dibujados
-                - landmarks: lista de landmarks en formato face_recognition
+                - landmarks: objeto landmarks de MediaPipe
                 - info: diccionario con información de detección
         """
-        # Convertir BGR a RGB para face_recognition
+        # Convertir BGR a RGB para MediaPipe
         imagen_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # Detectar rostros y landmarks
-        face_locations = face_recognition.face_locations(imagen_rgb)
-        face_landmarks_list = face_recognition.face_landmarks(imagen_rgb, face_locations)
+        # Procesar la imagen
+        resultados = self.face_mesh.process(imagen_rgb)
 
         # Crear copia para dibujar
         imagen_con_puntos = image.copy()
 
         info = {
-            "rostros_detectados": len(face_landmarks_list),
+            "rostros_detectados": 0,
             "total_landmarks": 0,
-            "deteccion_exitosa": len(face_landmarks_list) > 0
+            "deteccion_exitosa": False
         }
 
         # Si se detectaron rostros
-        if face_landmarks_list:
-            # Tomar el primer rostro para compatibilidad
-            landmarks = face_landmarks_list[0]
+        if resultados.multi_face_landmarks:
+            info["rostros_detectados"] = len(resultados.multi_face_landmarks)
+            info["deteccion_exitosa"] = True
 
-            # Contar total de landmarks
-            total_points = sum(len(points) for points in landmarks.values())
-            info["total_landmarks"] = total_points
+            # Calcular total de landmarks de todos los rostros
+            total_landmarks = sum(len(rostro.landmark) for rostro in resultados.multi_face_landmarks)
+            info["total_landmarks"] = total_landmarks
 
-            # Dibujar landmarks
+            # Dibujar landmarks para todos los rostros detectados
             alto, ancho = image.shape[:2]
 
-            # face_recognition landmarks están en formato (x, y)
-            for feature_name, points in landmarks.items():
-                for point in points:
-                    coord_x_pixel = int(point[0])
-                    coord_y_pixel = int(point[1])
+            for rostro in resultados.multi_face_landmarks:
+                for punto in rostro.landmark:
+                    coord_x_pixel = int(punto.x * ancho)
+                    coord_y_pixel = int(punto.y * alto)
 
                     cv2.circle(
                         imagen_con_puntos,
@@ -74,11 +72,12 @@ class FaceLandmarkDetector:
                         LANDMARK_THICKNESS
                     )
 
-            return imagen_con_puntos, landmarks, info
+            # Retornar todos los rostros para visualización completa
+            return imagen_con_puntos, resultados.multi_face_landmarks, info
 
         # No se detectó rostro
         return imagen_con_puntos, None, info
 
     def close(self):
-        """Libera recursos del detector (face_recognition no requiere limpieza explícita)."""
-        pass
+        """Libera recursos del detector."""
+        self.face_mesh.close()
