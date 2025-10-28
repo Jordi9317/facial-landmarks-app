@@ -12,114 +12,68 @@ class FacialExpressionAnalyzer:
     """
 
     def __init__(self):
-        # Mapeo de features de face_recognition a índices para expresiones
-        # face_recognition landmarks están organizados por features
+        # Mapeo de landmarks básicos de OpenCV Haar Cascades
         self.LEFT_EYE = 'left_eye'
         self.RIGHT_EYE = 'right_eye'
-        self.TOP_LIP = 'top_lip'
-        self.BOTTOM_LIP = 'bottom_lip'
-        self.NOSE_BRIDGE = 'nose_bridge'
+        self.NOSE = 'nose'
+        self.MOUTH = 'mouth'
+        self.FACE_CENTER = 'face_center'
 
     def calcular_apertura_boca(self, landmarks, alto, ancho):
         """
-        Calcula la apertura de la boca (distancia entre labios).
-        Compatible con face_recognition landmarks.
+        Calcula la apertura de la boca usando landmarks básicos de OpenCV.
 
         Args:
-            landmarks: Diccionario de landmarks de face_recognition
+            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
-            float: Distancia en píxeles entre labio superior e inferior
+            float: Distancia aproximada (siempre 0 ya que no tenemos landmarks de boca precisos)
         """
-        if self.TOP_LIP not in landmarks or self.BOTTOM_LIP not in landmarks:
-            return 0.0
-
-        # Calcular punto medio del labio superior
-        top_lip_points = landmarks[self.TOP_LIP]
-        top_y = sum(point[1] for point in top_lip_points) / len(top_lip_points)
-
-        # Calcular punto medio del labio inferior
-        bottom_lip_points = landmarks[self.BOTTOM_LIP]
-        bottom_y = sum(point[1] for point in bottom_lip_points) / len(bottom_lip_points)
-
-        distancia = abs(bottom_y - top_y)
-        return distancia
+        # Con Haar Cascades no podemos calcular apertura de boca precisa
+        # Retornamos 0 como indicador de que no está disponible
+        return 0.0
 
     def calcular_apertura_ojos(self, landmarks, alto, ancho):
         """
-        Calcula la apertura de ambos ojos.
-        Compatible con face_recognition landmarks.
+        Calcula la apertura de ambos ojos usando Haar Cascades.
+        Como no tenemos landmarks precisos de ojos, retornamos valores aproximados.
 
         Args:
-            landmarks: Diccionario de landmarks de face_recognition
+            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
             dict: {'izquierdo': float, 'derecho': float, 'promedio': float}
         """
-        apertura_izquierdo = 0.0
-        apertura_derecho = 0.0
+        # Contar ojos detectados
+        num_eyes = len(landmarks.get('eyes', []))
 
-        # Calcular apertura del ojo izquierdo
-        if self.LEFT_EYE in landmarks:
-            left_eye_points = landmarks[self.LEFT_EYE]
-            if len(left_eye_points) >= 2:
-                # Distancia vertical entre puntos superior e inferior
-                y_coords = [point[1] for point in left_eye_points]
-                apertura_izquierdo = max(y_coords) - min(y_coords)
-
-        # Calcular apertura del ojo derecho
-        if self.RIGHT_EYE in landmarks:
-            right_eye_points = landmarks[self.RIGHT_EYE]
-            if len(right_eye_points) >= 2:
-                # Distancia vertical entre puntos superior e inferior
-                y_coords = [point[1] for point in right_eye_points]
-                apertura_derecho = max(y_coords) - min(y_coords)
-
-        promedio = (apertura_izquierdo + apertura_derecho) / 2
+        # Valores aproximados basados en detección de ojos
+        eye_apertura = 15.0 if num_eyes >= 2 else 10.0  # Valor aproximado en píxeles
 
         return {
-            'izquierdo': apertura_izquierdo,
-            'derecho': apertura_derecho,
-            'promedio': promedio
+            'izquierdo': eye_apertura if num_eyes >= 1 else 0.0,
+            'derecho': eye_apertura if num_eyes >= 2 else 0.0,
+            'promedio': eye_apertura if num_eyes >= 1 else 0.0
         }
 
     def calcular_inclinacion_cabeza(self, landmarks, alto, ancho):
         """
-        Calcula la inclinación de la cabeza usando landmarks de la nariz.
-        Compatible con face_recognition landmarks.
+        Calcula la inclinación de la cabeza usando landmarks básicos de OpenCV.
 
         Args:
-            landmarks: Diccionario de landmarks de face_recognition
+            landmarks: Diccionario de landmarks de OpenCV Haar Cascades
             alto (int): Alto de la imagen
             ancho (int): Ancho de la imagen
 
         Returns:
-            float: Ángulo de inclinación en grados (aproximado)
+            float: Ángulo de inclinación en grados (siempre 0 ya que no podemos calcularlo con precisión)
         """
-        if self.NOSE_BRIDGE not in landmarks:
-            return 0.0
-
-        nose_points = landmarks[self.NOSE_BRIDGE]
-        if len(nose_points) < 2:
-            return 0.0
-
-        # Calcular ángulo usando los puntos del puente de la nariz
-        # Punto superior e inferior del puente nasal
-        top_point = nose_points[0]  # Punto superior
-        bottom_point = nose_points[-1]  # Punto inferior
-
-        delta_x = bottom_point[0] - top_point[0]
-        delta_y = bottom_point[1] - top_point[1]
-
-        # Calcular ángulo usando atan2
-        angulo_radianes = math.atan2(delta_y, delta_x)
-        angulo_grados = math.degrees(angulo_radianes)
-
-        return angulo_grados
+        # Con Haar Cascades no podemos calcular inclinación precisa
+        return 0.0
 
     def analizar_expresion_basica(self, landmarks, alto, ancho):
         """
