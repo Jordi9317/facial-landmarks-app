@@ -163,11 +163,12 @@ if uploaded_file is not None:
 
             # Exportar datos de expresiones
             expressions_json, expr_filename = export_expressions_json(expresion_data)
-            create_download_link(
-                expressions_json,
-                expr_filename,
-                "application/json",
-                "📊 Descargar Análisis de Expresiones (JSON)"
+            st.download_button(
+                label="📊 Descargar Análisis de Expresiones (JSON)",
+                data=expressions_json,
+                file_name=expr_filename,
+                mime="application/json",
+                key="download_expressions"
             )
 
         # Exportación de landmarks
@@ -180,11 +181,12 @@ if uploaded_file is not None:
             landmarks_data, filename = export_landmarks_csv(landmarks, imagen_cv2.shape[0], imagen_cv2.shape[1])
             mime_type = "text/csv"
 
-        create_download_link(
-            landmarks_data,
-            filename,
-            mime_type,
-            f"📍 Descargar Landmarks ({export_format})"
+        st.download_button(
+            label=f"📍 Descargar Landmarks ({export_format})",
+            data=landmarks_data,
+            file_name=filename,
+            mime=mime_type,
+            key=f"download_landmarks_{export_format.lower()}"
         )
 
     else:
@@ -218,10 +220,30 @@ else:
         st.subheader("Heatmap")
         st.write("Mapa de calor de densidad de puntos")
 
-    # Ejemplo visual
-    st.markdown("### 📖 Ejemplo de Resultado")
-    st.image(
-        "https://ai.google.dev/static/mediapipe/images/solutions/face_landmarker_keypoints.png?hl=es-419",
-        caption="MediaPipe detecta 478 landmarks faciales",
-        width=400
-    )
+    # Información sobre funcionalidades
+    st.markdown("### 🎯 Funcionalidades Disponibles")
+
+    col_demo1, col_demo2 = st.columns(2)
+
+    with col_demo1:
+        st.markdown("**🔍 Detección Avanzada**")
+        st.write("• Hasta 5 rostros simultáneamente")
+        st.write("• 478 landmarks por rostro")
+        st.write("• Precisión MediaPipe")
+
+        st.markdown("**🎨 Visualización Múltiple**")
+        st.write("• Puntos simples")
+        st.write("• Malla conectada")
+        st.write("• Contornos principales")
+        st.write("• Mapa de calor")
+
+    with col_demo2:
+        st.markdown("**😊 Análisis de Expresiones**")
+        st.write("• Apertura de boca")
+        st.write("• Apertura de ojos")
+        st.write("• Inclinación de cabeza")
+
+        st.markdown("**💾 Exportación de Datos**")
+        st.write("• Formato JSON completo")
+        st.write("• CSV tabular")
+        st.write("• Metadatos incluidos")

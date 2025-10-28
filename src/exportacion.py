@@ -151,7 +151,8 @@ def export_expressions_json(expression_data, filename=None):
 
 def create_download_link(data, filename, mime_type, label):
     """
-    Crea un enlace de descarga para Streamlit.
+    Crea un botón de descarga para Streamlit.
+    Versión corregida para evitar problemas de DOM en Streamlit Cloud.
 
     Args:
         data (str): Datos a descargar
@@ -160,14 +161,17 @@ def create_download_link(data, filename, mime_type, label):
         label (str): Etiqueta del botón
 
     Returns:
-        streamlit download_button
+        None: Renderiza directamente el botón
     """
     import streamlit as st
 
-    return st.download_button(
+    # Crear clave única para evitar conflictos
+    unique_key = f"download_{filename}_{hash(data) % 10000}"
+
+    st.download_button(
         label=label,
         data=data,
         file_name=filename,
         mime=mime_type,
-        key=f"download_{filename}_{datetime.now().timestamp()}"
+        key=unique_key
     )
