@@ -48,7 +48,6 @@ ehthumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
-.streamlit/config.toml
 
 # Imágenes de prueba y datos
 *.jpg
