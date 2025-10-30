@@ -201,6 +201,79 @@ st.image(image, use_container_width=True)  # Aún funciona
 st.image(image, width='stretch')  # Nueva sintaxis
 ```
 
+### Error de Importación OpenCV en Streamlit Cloud
+
+**Problema**: `ImportError: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs` al importar `cv2`.
+
+**Solución**: Actualizar versiones de dependencias en `requirements.txt`:
+```txt
+# Antes
+opencv-python-headless==4.7.0.72
+mediapipe==0.10.5
+
+# Después
+opencv-python-headless==4.8.0.76
+mediapipe==0.10.9
+```
+
+### Error de Sistema de Archivos: `inotify watch limit reached`
+
+**Problema**: Streamlit Cloud alcanza el límite de archivos vigilados, causando `OSError: [Errno 28] inotify watch limit reached`.
+
+**Solución**: Configurar Streamlit para desactivar el file watcher:
+```toml
+# .streamlit/config.toml
+[server]
+fileWatcherType = "none"
+```
+
+### Error de Visualización: `TypeError: width <= 0`
+
+**Problema**: `st.image()` falla con `TypeError: This app has encountered an error... elif width <= 0:` cuando se intenta mostrar imágenes inválidas o corruptas.
+
+**Solución**: Agregar validación antes de mostrar imágenes:
+```python
+# Antes
+st.image(cv2_to_pil(imagen_cv2), use_column_width=True)
+
+# Después
+if imagen_cv2 is not None and imagen_cv2.size > 0:
+    st.image(cv2_to_pil(imagen_cv2), use_column_width=True)
+else:
+    st.error("Error al cargar la imagen")
+```
+
+### Configuración para Streamlit Cloud
+
+**Problema**: Falta configuración específica para deployment en Streamlit Cloud.
+
+**Soluciones implementadas**:
+1. **`runtime.txt`**: Fijar versión de Python
+   ```
+   python-3.10
+   ```
+
+2. **`.streamlit/config.toml`**: Desactivar file watcher
+   ```toml
+   [server]
+   fileWatcherType = "none"
+   ```
+
+3. **`.gitignore`**: Excluir archivos innecesarios
+   ```
+   .streamlit/secrets.toml
+   # .streamlit/config.toml  # Ahora incluido en repo
+   ```
+
+4. **`requirements.txt`**: Versiones fijas y compatibles
+   ```txt
+   streamlit==1.28.0
+   opencv-python-headless==4.8.0.76
+   pillow==10.0.0
+   numpy==1.24.4
+   mediapipe==0.10.9
+   ```
+
 ### Conversión de Tipos en Exportación
 
 **Problema**: `landmarks_to_dict()` cambió claves pero `export_landmarks_csv()` usaba nombres antiguos.
