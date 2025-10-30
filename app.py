@@ -90,7 +90,10 @@ if uploaded_file is not None:
 
     with col1:
         st.subheader("🖼️ Imagen Original")
-        st.image(cv2_to_pil(imagen_cv2), use_column_width=True)
+        if imagen_cv2 is not None and imagen_cv2.size > 0:
+            st.image(cv2_to_pil(imagen_cv2), use_column_width=True)
+        else:
+            st.error("Error al cargar la imagen")
 
     # Detectar landmarks
     with st.spinner("🔍 Detectando landmarks faciales..."):
@@ -120,7 +123,10 @@ if uploaded_file is not None:
 
     with col2:
         st.subheader(f"🎨 Landmarks - {visualization_style}")
-        st.image(cv2_to_pil(imagen_visualizada), use_column_width=True)
+        if imagen_visualizada is not None and imagen_visualizada.size > 0:
+            st.image(cv2_to_pil(imagen_visualizada), use_column_width=True)
+        else:
+            st.error("Error al procesar la imagen con landmarks")
 
     # Mostrar información de detección
     st.divider()
