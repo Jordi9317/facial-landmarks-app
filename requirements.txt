@@ -3,9 +3,9 @@
 
 # Librerías principales
 streamlit==1.28.0
-opencv-python-headless==4.7.0.72
+opencv-python-headless==4.8.0.76
 pillow==10.0.0
 numpy==1.24.4
 
 # MediaPipe para detección avanzada de landmarks faciales
-mediapipe==0.10.5
+mediapipe==0.10.9
